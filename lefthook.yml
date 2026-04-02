@@ -3,5 +3,6 @@ pre-commit:
 
   jobs:
     - root: web/
-      run: npx biome check --write .
+      glob: "web/**/*.{js,ts,jsx,tsx,json,css}"
+      run: npx biome check --write {staged_files}
       stage_fixed: true

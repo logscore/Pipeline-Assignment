@@ -1,7 +1,7 @@
-import { db } from "@/db";
-import { products } from "@/db/schema";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { db } from "@/db";
+import { products } from "@/db/schema";
 import OrderClient from "./OrderClient";
 
 export default async function PlaceOrderPage() {
@@ -21,7 +21,9 @@ export default async function PlaceOrderPage() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6 text-gray-900">Place a New Order</h1>
+      <h1 className="text-2xl font-bold mb-6 text-gray-900">
+        Place a New Order
+      </h1>
       <OrderClient availableProducts={allProducts} />
     </div>
   );

@@ -7,7 +7,7 @@
     "dev:up": "supabase start",
     "build": "next build",
     "start": "next start",
-    "lint": "biome check",
+    "lint": "biome check --write",
     "format": "biome format --write",
     "generate": "bunx drizzle-kit generate",
     "migrate": "bunx drizzle-kit migrate"

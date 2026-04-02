@@ -1,6 +1,6 @@
+import { selectCustomerAction } from "@/app/actions";
 import { db } from "@/db";
 import { customers } from "@/db/schema";
-import { selectCustomerAction } from "@/app/actions";
 
 export default async function SelectCustomerPage() {
   let allCustomers = [];
@@ -15,12 +15,16 @@ export default async function SelectCustomerPage() {
       <h1 className="text-2xl font-bold mb-6">Select a Customer</h1>
       {allCustomers.length === 0 ? (
         <div className="text-red-500 bg-red-50 p-4 rounded border border-red-200">
-          No customers found in database. Please seed the database first or check connection.
+          No customers found in database. Please seed the database first or
+          check connection.
         </div>
       ) : (
         <form action={selectCustomerAction} className="space-y-4">
           <div>
-            <label htmlFor="customer_id" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="customer_id"
+              className="block text-sm font-medium text-gray-700"
+            >
               Customer
             </label>
             <select
