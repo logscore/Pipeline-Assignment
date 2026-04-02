@@ -2,8 +2,10 @@ import { selectCustomerAction } from "@/app/actions";
 import { db } from "@/db";
 import { customers } from "@/db/schema";
 
+type Customer = typeof customers.$inferSelect;
+
 export default async function SelectCustomerPage() {
-  let allCustomers = [];
+  let allCustomers: Customer[] = [];
   try {
     allCustomers = await db.select().from(customers).limit(100);
   } catch (err) {

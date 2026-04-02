@@ -2,8 +2,21 @@ import { asc, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { customers, order_predictions, orders } from "@/db/schema";
 
+type Priority = {
+  orderId: number;
+  orderTimestamp: string;
+  totalValue: number | null;
+  fulfilled: number;
+  customerId: number;
+  customerName: string;
+  customerLastName: string;
+  probability: number | null;
+  predictedLate: number | null;
+  predictionTime: string | null;
+};
+
 export default async function PriorityQueuePage() {
-  let priorities = [];
+  let priorities: Priority[] = [];
   try {
     priorities = await db
       .select({

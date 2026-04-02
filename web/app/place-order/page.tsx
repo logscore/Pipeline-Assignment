@@ -4,6 +4,8 @@ import { db } from "@/db";
 import { products } from "@/db/schema";
 import OrderClient from "./OrderClient";
 
+type Product = typeof products.$inferSelect;
+
 export default async function PlaceOrderPage() {
   const cookieStore = await cookies();
   const customerIdStr = cookieStore.get("selected_customer_id")?.value;
@@ -12,7 +14,7 @@ export default async function PlaceOrderPage() {
     redirect("/select-customer");
   }
 
-  let allProducts = [];
+  let allProducts: Product[] = [];
   try {
     allProducts = await db.select().from(products);
   } catch (err) {
