@@ -1,9 +1,9 @@
+import { db } from "@db";
+import { orders } from "@db/schema";
 import { desc, eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { db } from "@/db";
-import { orders } from "@/db/schema";
 
 export default async function OrderHistoryPage() {
   const cookieStore = await cookies();

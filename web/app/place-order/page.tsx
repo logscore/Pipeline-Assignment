@@ -1,7 +1,7 @@
+import { db } from "@db";
+import { products } from "@db/schema";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { db } from "@/db";
-import { products } from "@/db/schema";
 import OrderClient from "./OrderClient";
 
 type Product = typeof products.$inferSelect;

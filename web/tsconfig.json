@@ -20,7 +20,8 @@
     ],
     "paths": {
       "@/*": ["./*"],
-      "@db": ["./lib/db"],
+      "@db": ["./lib/db/index"],
+      "@db/schema": ["./lib/db/schema"],
       "@auth": ["./lib/auth"]
     }
   },

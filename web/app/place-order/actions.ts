@@ -1,9 +1,9 @@
 "use server";
 
+import { db } from "@db";
+import { order_items, orders, products } from "@db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { cookies } from "next/headers";
-import { db } from "@/db";
-import { order_items, orders, products } from "@/db/schema";
 
 export async function placeOrderAction(
   cart: { productId: number; quantity: number }[],

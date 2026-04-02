@@ -1,7 +1,7 @@
 "use client";
 
+import type { products } from "@db/schema";
 import { useState } from "react";
-import type { products } from "@/db/schema";
 import { placeOrderAction } from "./actions";
 
 type Product = typeof products.$inferSelect;

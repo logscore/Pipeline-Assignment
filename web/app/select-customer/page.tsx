@@ -1,6 +1,6 @@
+import { db } from "@db";
+import { customers } from "@db/schema";
 import { selectCustomerAction } from "@/app/actions";
-import { db } from "@/db";
-import { customers } from "@/db/schema";
 
 type Customer = typeof customers.$inferSelect;
 

@@ -1,9 +1,9 @@
+import { db } from "@db";
+import { order_items, orders, products } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { db } from "@/db";
-import { order_items, orders, products } from "@/db/schema";
 
 export default async function OrderDetailPage({
   params,

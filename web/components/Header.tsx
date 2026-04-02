@@ -1,8 +1,8 @@
+import { db } from "@db";
+import { customers } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import Link from "next/link";
-import { db } from "@/db";
-import { customers } from "@/db/schema";
 
 export default async function Header() {
   const cookieStore = await cookies();

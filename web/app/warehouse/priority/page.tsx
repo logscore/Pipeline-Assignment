@@ -1,6 +1,6 @@
+import { db } from "@db";
+import { customers, order_predictions, orders } from "@db/schema";
 import { asc, desc, eq } from "drizzle-orm";
-import { db } from "@/db";
-import { customers, order_predictions, orders } from "@/db/schema";
 
 type Priority = {
   orderId: number;
