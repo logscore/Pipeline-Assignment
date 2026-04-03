@@ -1,2 +1,6 @@
 .env*
 !.env.example
+
+# Copied from repo root during `next build` (see web/scripts/sync-pipeline-assets.mjs)
+web/pipeline/pipeline_prod.ipynb
+web/pipeline/shop.db

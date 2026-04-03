@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:up": "supabase start",
-    "build": "next build",
+    "build": "node scripts/sync-pipeline-assets.mjs && next build",
     "start": "next start",
     "lint": "biome check --write",
     "format": "biome format --write",
