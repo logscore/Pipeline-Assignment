@@ -137,3 +137,21 @@ Then run **in order**:
 - **Build command:** `bun run build` or `npm run build`.
 
 See **`FIXES.md`** for other known limits (e.g. scoring on Vercel).
+```
+bun i
+bun dev:up
+bun migrate
+bun dev
+```
+
+### Configure Scoring
+
+The scoring page now triggers a Python Vercel function instead of shelling out to a local script.
+
+- The deployed endpoint is `web/api/run-inference.py`, which Vercel serves at `/api/run-inference`.
+- The function scores unfulfilled orders and upserts rows into `order_predictions`.
+- Set `INFERENCE_FUNCTION_URL=/api/run-inference` in your Vercel project environment variables unless you intentionally deploy inference somewhere else.
+- Set `INFERENCE_TRIGGER_TOKEN` in Vercel and in local env if you want the Python endpoint to reject unsigned requests.
+- If the deployment is protected by Vercel Authentication, keep `INFERENCE_FUNCTION_URL` same-origin so the server action can forward auth cookies, or enable Protection Bypass for Automation so `VERCEL_AUTOMATION_BYPASS_SECRET` is available automatically.
+- The Python function depends on `web/requirements.txt`, so the Vercel project root should be `web`.
+- Local `next dev` does not run `api/*.py` Vercel functions. Use `vercel dev` for a full local end-to-end scoring flow, or point `INFERENCE_FUNCTION_URL` at a deployed endpoint while developing the Next app.
