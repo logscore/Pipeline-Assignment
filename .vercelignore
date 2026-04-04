@@ -1,7 +1,6 @@
 .git/
-.next/
-node_modules/
-web/
+**/.next/
+**/node_modules/
 supabase/
 docs/
 __pycache__/
