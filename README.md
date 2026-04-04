@@ -80,6 +80,40 @@ From the repository root:
 
    Open **http://localhost:3000/select-customer** (the default home page is still the stock Next starter). Supabase Studio: **http://127.0.0.1:54323**
 
+### Run scoring locally (FastAPI + Next, “Option B”)
+
+`next dev` does not serve the Python API. Use **two terminals** from the repo:
+
+1. **Install Python deps** (once, from the repository root):
+
+   ```
+   pip install -r requirements.txt
+   ```
+
+2. **Terminal A — API** — from **`web/`**:
+
+   ```
+   bun run dev:api
+   ```
+
+   This `cd`s to the repo root and runs **uvicorn** on **http://127.0.0.1:3001** with `--reload`.
+
+3. **Terminal B — Next** — from **`web/`**:
+
+   ```
+   bun dev
+   ```
+
+4. In **`web/.env`**, point the server action at the local API (in addition to `DATABASE_URL`):
+
+   ```
+   INFERENCE_FUNCTION_URL=http://127.0.0.1:3001/api/inference/run
+   ```
+
+   Restart **`bun dev`** after changing env vars. **`INFERENCE_API_SECRET`** is optional for local dev; if you set it in **`web/.env`**, the FastAPI app reads the same file and the Bearer token from Next will match.
+
+The FastAPI app loads **`web/.env`** and the repo **`.env`** for `DATABASE_URL` and related vars. Open **http://localhost:3000/scoring** and use **Run Python Inference**; then check **http://localhost:3000/warehouse/priority**.
+
 ## Production (Vercel + hosted Supabase)
 
 Only **two things** must point at your **hosted** Supabase database: **Vercel’s env var** and the **commands you run once** to migrate + import. Your local `web/.env` can stay on `127.0.0.1` if you use the PowerShell method below.

@@ -1,5 +1,14 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Load before importing app modules so DATABASE_URL is set for inference/cron.
+_root = Path(__file__).resolve().parent.parent
+load_dotenv(_root / "web" / ".env")
+load_dotenv(_root / ".env", override=False)
+
 from fastapi import FastAPI, Request
 
 from api.cron.pipeline import run_pipeline
