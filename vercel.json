@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/inference/run.py": {
+      "maxDuration": 60,
+      "excludeFiles": "{web/**,.git/**,.next/**,node_modules/**,supabase/**,docs/**,FIXES.md,shop.db,model.sav,fraud_pipeline_artifact.joblib,**/__pycache__/**,**/*.pyc}"
+    },
+    "api/cron/pipeline.py": {
+      "maxDuration": 60,
+      "excludeFiles": "{web/**,.git/**,.next/**,node_modules/**,supabase/**,docs/**,FIXES.md,shop.db,model.sav,fraud_pipeline_artifact.joblib,**/__pycache__/**,**/*.pyc}"
+    }
+  }
+}

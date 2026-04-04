@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
 type InferenceResponse = {
+  ok?: boolean;
   success?: boolean;
   message?: string;
+  error?: string;
   output?: string;
 };
 
@@ -93,10 +95,6 @@ export async function runScoringAction(): Promise<{
     requestHeaders.Authorization = `Bearer ${secret}`;
   }
 
-  if (process.env.INFERENCE_TRIGGER_TOKEN) {
-    requestHeaders["x-inference-token"] = process.env.INFERENCE_TRIGGER_TOKEN;
-  }
-
   if (inferenceUrl.origin === requestOrigin) {
     const cookieHeader = headerStore.get("cookie");
     if (cookieHeader) {
@@ -123,7 +121,7 @@ export async function runScoringAction(): Promise<{
       success: false,
       message: `Could not reach Python inference route: ${msg}`,
       output:
-        "Use `vercel dev` from the web/ folder for local testing (Next.js alone does not run Python routes).",
+        "Use `vercel dev` from the repo root for local backend testing, or point INFERENCE_FUNCTION_URL at a deployed backend URL.",
     };
   }
 
@@ -135,7 +133,7 @@ export async function runScoringAction(): Promise<{
       return {
         success: false,
         message:
-          "Inference endpoint is protected by Vercel Deployment Protection. Use a same-origin URL or configure Protection Bypass for Automation.",
+          "Inference endpoint is protected by Vercel Deployment Protection. For a separate backend project, disable Vercel Authentication on that backend and rely on INFERENCE_API_SECRET instead.",
         output: text,
       };
     }
@@ -143,14 +141,17 @@ export async function runScoringAction(): Promise<{
     if (res.status === 404) {
       return {
         success: false,
-        message: `No inference endpoint was found at ${inferenceUrl.pathname}.`,
+        message: `No inference endpoint was found at ${inferenceUrl.pathname}. Set INFERENCE_FUNCTION_URL to your backend deployment URL, for example https://your-backend-project.vercel.app/api/inference/run.`,
         output: text,
       };
     }
 
     return {
       success: parsedResponse?.success ?? false,
-      message: parsedResponse?.message ?? `Inference HTTP ${res.status}`,
+      message:
+        parsedResponse?.message ??
+        parsedResponse?.error ??
+        `Inference HTTP ${res.status}`,
       output: parsedResponse?.output ?? text,
     };
   }
@@ -160,7 +161,7 @@ export async function runScoringAction(): Promise<{
   if (body.ok !== true && body.success !== true) {
     return {
       success: false,
-      message: body.message ?? "Inference reported failure",
+      message: body.message ?? body.error ?? "Inference reported failure",
       output: body.output ?? JSON.stringify(body),
     };
   }

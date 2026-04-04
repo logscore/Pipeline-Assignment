@@ -146,12 +146,14 @@ bun dev
 
 ### Configure Scoring
 
-The scoring page now triggers a Python Vercel function instead of shelling out to a local script.
+The scoring button now calls a separate FastAPI backend deployed from the repo root.
 
-- The deployed endpoint is `web/api/run-inference.py`, which Vercel serves at `/api/run-inference`.
-- The function scores unfulfilled orders and upserts rows into `order_predictions`.
-- Set `INFERENCE_FUNCTION_URL=/api/run-inference` in your Vercel project environment variables unless you intentionally deploy inference somewhere else.
-- Set `INFERENCE_TRIGGER_TOKEN` in Vercel and in local env if you want the Python endpoint to reject unsigned requests.
-- If the deployment is protected by Vercel Authentication, keep `INFERENCE_FUNCTION_URL` same-origin so the server action can forward auth cookies, or enable Protection Bypass for Automation so `VERCEL_AUTOMATION_BYPASS_SECRET` is available automatically.
-- The Python function depends on `web/requirements.txt`, so the Vercel project root should be `web`.
-- Local `next dev` does not run `api/*.py` Vercel functions. Use `vercel dev` for a full local end-to-end scoring flow, or point `INFERENCE_FUNCTION_URL` at a deployed endpoint while developing the Next app.
+- Deploy the backend as its own Vercel project with Root Directory left at the repo root.
+- Deploy the frontend as its own Vercel project with Root Directory set to `web`.
+- The backend inference endpoint is `api/inference/run.py`, which Vercel serves at `/api/inference/run`.
+- Set `INFERENCE_FUNCTION_URL=https://your-backend-project.vercel.app/api/inference/run` in the frontend project environment variables.
+- Set the same `INFERENCE_API_SECRET` value in both Vercel projects.
+- The backend must have `DATABASE_URL` configured.
+- Leave the backend project publicly reachable and secure it with `INFERENCE_API_SECRET`; do not put the backend behind Vercel Authentication if the frontend calls it cross-project.
+- The backend project uses repo-root `vercel.json` and `requirements.txt`.
+- Local `next dev` does not run Python Vercel routes. Use `vercel dev` from the repo root when testing the backend locally.

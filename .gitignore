@@ -1,5 +1,7 @@
 .env*
 !.env.example
+__pycache__/
+*.py[cod]
 
 # Copied from repo root during `next build` (see web/scripts/sync-pipeline-assets.mjs)
 web/pipeline/pipeline_prod.ipynb

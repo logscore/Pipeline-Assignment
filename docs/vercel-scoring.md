@@ -1,98 +1,75 @@
 # ML scoring on Vercel (Next.js + Python)
 
-This document explains how **machine learning inference** can run on **Vercel** alongside this repo’s **Next.js** app: what works, what does not, and which **project settings** matter.
+This repo works best on Vercel as **two projects**:
 
-## Mental model: one deployment, two runtimes
+1. A **frontend** project rooted at `web/` for the Next.js app.
+2. A **backend** project rooted at the repo root for the Python API.
 
-Vercel can host **more than one kind of serverless function** in the **same project**:
+That split avoids mixing Next.js and Python deployment roots in the same Vercel project.
 
-| Part | Runtime | Role |
-|------|---------|------|
-| Next.js (App Router, Server Actions, most `app/` code) | **Node.js** | Pages, UI, calling APIs |
-| HTTP handlers you add under Vercel’s Python layout (e.g. `api/`) | **Python** | Load `model.sav`, use pandas/sklearn, talk to Postgres |
+## Current architecture
 
-You do **not** need a second Vercel account or a separate “Python-only” deployment for this pattern. You add **Python functions** to the **same** project; they share the same domain and can use the **same environment variables** (for example `DATABASE_URL`).
+| Project | Root Directory | Runtime | Route |
+|--------|----------------|---------|-------|
+| Frontend | `web` | Node.js / Next.js | calls backend with `fetch()` |
+| Backend | repo root | Python / FastAPI | `/api/inference/run` |
 
-Each **request** is handled by **one** function: either Node or Python. They are separate **serverless functions** (separate cold starts, memory, and time limits), not one long-lived server.
+The frontend scoring button uses a Next.js server action that sends an authenticated POST request to the backend.
 
-## Why `exec("python …")` from a Server Action fails
+## Backend deployment
 
-The scoring button previously used **Node** `child_process.exec` to run `python` or `python3` on the shell.
+The backend deployment root is the repo root because that is where these files live:
 
-- Server Actions run in the **Node** runtime.
-- That runtime does **not** include a `python` binary on the path the way your laptop does.
-- So you see: `python: command not found` / `python3: command not found`.
+- `api/inference/run.py`
+- `requirements.txt`
+- `vercel.json`
+- `.python-version`
 
-That failure is **not** “Vercel forbids Python.” It is “this code path never used Vercel’s **Python runtime**; it assumed a generic shell with Python installed.”
+The inference API is a FastAPI app exposed at:
 
-## The pattern that matches Vercel
+- `/api/inference/run`
 
-1. Implement scoring as a **Python Serverless Function** (Vercel discovers entrypoints under conventions such as `api/` — see [Vercel Python runtime](https://vercel.com/docs/functions/runtimes/python)).
-2. Declare dependencies with **`requirements.txt`** (or `pyproject.toml` / lockfiles) in the **deploy root**.
-3. From Next.js, **do not** shell out. Call the Python route with **`fetch()`** from a Server Action or Route Handler (same origin, or full URL).
-4. After a successful response, **refresh data** the same way you would for any DB update: e.g. `revalidatePath('/warehouse/priority')` or client `router.refresh()`.
+There is also an optional cron route at:
 
-```mermaid
-sequenceDiagram
-  participant User
-  participant Next as Next.js (Node)
-  participant Py as Python function
-  participant DB as Postgres
+- `/api/cron/pipeline`
 
-  User->>Next: Run Scoring
-  Next->>Py: fetch POST /api/...
-  Py->>Py: load model.sav, infer
-  Py->>DB: upsert predictions
-  Py-->>Next: 200 OK
-  Next-->>User: success + refresh queue
-```
+## Frontend deployment
 
-## Monorepo: `web/` as Root Directory
+The frontend deployment root is `web`.
 
-This repository keeps the Next app under **`web/`**.
+The scoring action in `web/app/scoring/actions.ts` expects:
 
-In Vercel:
+- `INFERENCE_FUNCTION_URL=https://your-backend-project.vercel.app/api/inference/run`
+- `INFERENCE_API_SECRET=<shared secret>`
 
-**Settings → General → Root Directory** should be **`web`** so the Next.js build runs in the right folder.
+Use the same `INFERENCE_API_SECRET` value in both projects.
+Leave the backend project publicly reachable and secure it with that shared secret instead of Vercel Deployment Protection.
 
-Implications:
+## Required environment variables
 
-- Python entrypoints and **`requirements.txt`** should live **under `web/`** (the deploy root), not only at the repo root, unless you change the project layout.
-- If Root Directory is empty but the app only exists under `web/`, builds and file paths often do not match what you expect.
+### Backend project
 
-## Vercel settings checklist
+- `DATABASE_URL`
+- `INFERENCE_API_SECRET`
+- `LATE_DELIVERY_DECISION_THRESHOLD` (optional, defaults to `0.5`)
+- `CRON_SECRET` (optional, only if you use `/api/cron/pipeline`)
 
-| Setting | Typical action |
-|--------|----------------|
-| **Root Directory** | `web` if Next lives in `web/` |
-| **Environment variables** | `DATABASE_URL`, secrets for auth between Next and Python (e.g. shared bearer token), any model paths |
-| **Function max duration** | Increase if inference approaches time limits (depends on plan) |
-| **Python version** | Pin with `.python-version` or `pyproject.toml` under the deploy root |
+### Frontend project
 
-There is no separate “enable Python” toggle; Vercel detects Python from the **files** and dependency manifests in the deployment.
+- `INFERENCE_FUNCTION_URL`
+- `INFERENCE_API_SECRET`
 
-## `model.sav` and dependencies
+## Why this works
 
-- **`model.sav`** is usually **pickle/joblib** from scikit-learn. It is intended for **Python** inference, not for Node.
-- On Vercel, the **Python function** can load `model.sav` **if** the file is **included in the deployment** (next to the function or copied at build) or loaded from **Blob / object storage** with a URL.
-- **pandas**, **numpy**, and **scikit-learn** are large. Serverless deployments have **size limits**; builds can fail if the bundle is too big. If that happens, common mitigations are: trim dependencies, use lighter inference paths, or export the model to **ONNX** / **JSON coefficients** and run a smaller stack.
+- The backend project is auto-detected as Python because the repo root contains `requirements.txt` and `api/*.py`.
+- The frontend project is auto-detected as Next.js because `web/` contains `package.json`.
+- The frontend does not shell out to Python. It calls the Python backend over HTTP.
 
-## Honest limitations
+## Verification checklist
 
-- **Cold starts**: the first request after idle can be slow, especially with heavy imports.
-- **Timeouts**: scoring must finish within your plan’s **maximum duration** per invocation.
-- **Not a substitute for a big batch training job**: train offline or elsewhere; the function should focus on **batch or single inference** that fits serverless limits.
-
-## Alternatives (same product goals)
-
-If Python on Vercel proves too tight for sklearn + pandas:
-
-- **GitHub Actions** runs Python with your repo; trigger via API from Next and accept **async** scoring + refresh.
-- **Small external API** (Railway, Render, Fly.io, Cloud Run) that runs the same script; Next calls it with `fetch`.
-- **Export model** (coefficients JSON, ONNX) and run **inference in Node** so the edge stays thin.
-
-## Summary
-
-- Vercel **does** support **Python** as first-class serverless functions.
-- Your Next app stays **Node**; scoring moves to a **Python HTTP handler** in the **same** project, invoked with **`fetch`**, not `exec`.
-- Set **Root Directory** to **`web`** for this repo layout, keep Python artifacts **under that root**, and validate **build size and timeouts** on the first real deploy.
+1. Deploy the backend project from the repo root.
+2. Open `https://your-backend-project.vercel.app/api/inference/run`.
+3. Confirm you get JSON saying the inference endpoint is healthy.
+4. Deploy the frontend project from `web/`.
+5. Set `INFERENCE_FUNCTION_URL` in the frontend project to the full backend URL.
+6. Click the scoring button and confirm `order_predictions` updates.

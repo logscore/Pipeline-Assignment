@@ -43,7 +43,13 @@ INNER JOIN shipments s ON s.order_id = o.order_id
 WHERE o.fulfilled = 0
 """
 
-NUMERIC = ["num_items", "total_value", "avg_weight", "promised_days", "actual_days_feat"]
+NUMERIC = [
+    "num_items",
+    "total_value",
+    "avg_weight",
+    "promised_days",
+    "actual_days_feat",
+]
 CATEGORICAL = ["carrier", "shipping_method", "distance_band"]
 
 
@@ -60,6 +66,25 @@ def _authorize(request: Request) -> None:
         return
     if secret and auth != f"Bearer {secret}":
         raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+def _decision_threshold() -> float:
+    raw_threshold = os.environ.get("LATE_DELIVERY_DECISION_THRESHOLD", "0.5")
+    try:
+        threshold = float(raw_threshold)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=500,
+            detail="LATE_DELIVERY_DECISION_THRESHOLD must be a number between 0 and 1",
+        ) from exc
+
+    if threshold < 0 or threshold > 1:
+        raise HTTPException(
+            status_code=500,
+            detail="LATE_DELIVERY_DECISION_THRESHOLD must be between 0 and 1",
+        )
+
+    return threshold
 
 
 def _read_df(conn: psycopg.Connection, sql: str) -> pd.DataFrame:
@@ -102,7 +127,9 @@ def _build_model(train_df: pd.DataFrame) -> Pipeline | None:
             ("pre", pre),
             (
                 "lr",
-                LogisticRegression(max_iter=200, class_weight="balanced", random_state=42),
+                LogisticRegression(
+                    max_iter=200, class_weight="balanced", random_state=42
+                ),
             ),
         ]
     )
@@ -114,6 +141,8 @@ def _run_inference() -> dict:
     database_url = os.environ.get("DATABASE_URL")
     if not database_url:
         return {"ok": False, "error": "DATABASE_URL is not set"}
+
+    threshold = _decision_threshold()
 
     with psycopg.connect(database_url) as conn:
         train_df = _read_df(conn, TRAIN_SQL)
@@ -136,7 +165,7 @@ def _run_inference() -> dict:
         else:
             proba = model.predict_proba(X_score)[:, 1]
 
-        pred = (proba >= 0.5).astype(int)
+        pred = (proba >= threshold).astype(int)
         ts = datetime.now(timezone.utc)
 
         rows = list(
@@ -169,6 +198,16 @@ def _run_inference() -> dict:
         "updated": len(rows),
         "message": f"Upserted predictions for {len(rows)} unfulfilled order(s).",
         "training_rows": len(train_df),
+        "decision_threshold": threshold,
+    }
+
+
+@app.get("/")
+def health_check():
+    return {
+        "ok": True,
+        "message": "Inference endpoint is healthy.",
+        "decision_threshold": _decision_threshold(),
     }
 
 

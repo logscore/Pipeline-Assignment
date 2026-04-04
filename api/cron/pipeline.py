@@ -20,8 +20,6 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
-import nbformat
-from nbclient import NotebookClient
 
 app = FastAPI()
 
@@ -40,6 +38,16 @@ def _authorize(request: Request) -> None:
 
 
 def _execute_notebook() -> dict:
+    try:
+        import nbformat
+        from nbclient import NotebookClient
+    except ImportError:
+        return {
+            "ok": False,
+            "error": "Notebook execution dependencies are not installed in this deployment.",
+            "hint": "Install nbformat, nbclient, ipykernel, and jupyter_core if you want to run /api/cron/pipeline.",
+        }
+
     os.environ.setdefault("MPLBACKEND", "Agg")
     for k, v in (
         ("OMP_NUM_THREADS", "1"),
